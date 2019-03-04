@@ -1,5 +1,12 @@
-# go-simple-upload-server
-Simple HTTP server to save artifacts
+# Educast HTTP Uploader
+Simple HTTP server to save video artifacts from Educast
+Forked from [mayth/go-simple-upload-server](https://github.com/mayth/go-simple-upload-server) project with the following changes:
+
+- allow PUT requests to reference subfolders (i.e `PUT /files/(path-to/filename)`). Subfolders are created if they do not exist on server.
+- disable GET requests, this is only an upload server
+- added CMD to dockerfile to startup server automatically running as non-root user (uid: 1028)
+- ENV var **APP_TOKEN** to set the application token 
+- using Alpline:latest for runtime image
 
 # Usage
 
@@ -30,38 +37,26 @@ hello, world!
 
 **OR**
 
-Use `PUT /files/(filename)`.
-In this case, the original file name is ignored, and the name is taken from the URL.
+Use `PUT /files/(path-to/filename)`.
+In this case, the original file name is ignored, and the name and path to store the file (inside the uploads folder) is taken from the URL. 
 
 ```
-$ curl -X PUT -Ffile=@sample.txt "http://localhost:25478/files/another_sample.txt?token=f9403fc5f537b4ab332d"
-{"ok":true,"path":"/files/another_sample.txt"}
-```
-
-## Downloading
-
-`GET /files/(filename)`.
-
-```
-$ curl 'http://localhost:25478/files/sample.txt?token=f9403fc5f537b4ab332d'
-hello, world!
+$ curl -X PUT -Ffile=@sample.txt "http://localhost:25478/files/myfolder/another_sample.txt?token=f9403fc5f537b4ab332d"
+{"ok":true,"path":"/files/myfolder/another_sample.txt"}
 ```
 
 ## Existence Check
 
-`HEAD /files/(filename)`.
+`HEAD /files/(path-to/filename)`.
 
 ```
-$ curl -I 'http://localhost:25478/files/foobar.txt?token=f9403fc5f537b4ab332d'
+$ curl -I 'http://localhost:25478/files/myfolder/foobar.txt?token=f9403fc5f537b4ab332d'
 HTTP/1.1 200 OK
 Accept-Ranges: bytes
 Content-Length: 9
 Content-Type: text/plain; charset=utf-8
 Last-Modified: Sun, 09 Oct 2016 14:35:39 GMT
 Date: Sun, 09 Oct 2016 14:35:43 GMT
-
-$ curl 'http://localhost:25478/files/foobar.txt?token=f9403fc5f537b4ab332d'
-hello!!!
 
 $ curl -I 'http://localhost:25478/files/unknown?token=f9403fc5f537b4ab332d'
 HTTP/1.1 404 Not Found
@@ -70,7 +65,6 @@ X-Content-Type-Options: nosniff
 Date: Sun, 09 Oct 2016 14:37:48 GMT
 Content-Length: 19
 ```
-
 
 # TLS
 
@@ -109,6 +103,8 @@ NOTE: The token is generated from the random number, so it will change every tim
 
 # Docker
 
+To be done...
+
 ```
-$ docker run -p 25478:25478 -v $HOME/tmp:/var/root mayth/simple-upload-server app -token f9403fc5f537b4ab332d /var/root
+$ docker run -p 25478:25478 -v $HOME/tmp:/tmp/uploads fccn/educast-http-uploader
 ```

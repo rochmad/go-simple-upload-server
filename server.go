@@ -32,16 +32,6 @@ func NewServer(documentRoot string, maxUploadSize int64, token string) Server {
 	}
 }
 
-func (s Server) handleGet(w http.ResponseWriter, r *http.Request) {
-	re := regexp.MustCompile(`^/files/([^/]+)$`)
-	if !re.MatchString(r.URL.Path) {
-		w.WriteHeader(http.StatusNotFound)
-		writeError(w, fmt.Errorf("\"%s\" is not found", r.URL.Path))
-		return
-	}
-	http.StripPrefix("/files/", http.FileServer(http.Dir(s.DocumentRoot))).ServeHTTP(w, r)
-}
-
 func (s Server) handlePost(w http.ResponseWriter, r *http.Request) {
 	srcFile, info, err := r.FormFile("file")
 	if err != nil {
@@ -115,7 +105,7 @@ func (s Server) handlePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) handlePut(w http.ResponseWriter, r *http.Request) {
-	re := regexp.MustCompile(`^/files/([^/]+)$`)
+	re := regexp.MustCompile(`^/files/(.+)$`)
 	matches := re.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
 		logger.WithField("path", r.URL.Path).Info("invalid path")
@@ -124,6 +114,10 @@ func (s Server) handlePut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	targetPath := path.Join(s.DocumentRoot, matches[1])
+	targetDir := path.Dir(targetPath)
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+     os.Mkdir(targetDir, 0755)
+    }
 	file, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		logger.WithError(err).WithField("path", targetPath).Error("failed to open the file")
@@ -190,14 +184,12 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
-	case http.MethodGet, http.MethodHead:
-		s.handleGet(w, r)
 	case http.MethodPost:
 		s.handlePost(w, r)
 	case http.MethodPut:
 		s.handlePut(w, r)
 	default:
-		w.Header().Add("Allow", "GET,HEAD,POST,PUT")
+		w.Header().Add("Allow", "HEAD,POST,PUT")
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		writeError(w, fmt.Errorf("method \"%s\" is not allowed", r.Method))
 	}

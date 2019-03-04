@@ -13,7 +13,7 @@ Forked from [mayth/go-simple-upload-server](https://github.com/mayth/go-simple-u
 ## Start Server
 
 ```
-$ mkdir $HOME/tmp
+$ mkdir $HOME/tmp && chown -R 1028:100 $HOME/tmp
 $ ./simple_upload_server -token f9403fc5f537b4ab332d $HOME/tmp
 ```
 
@@ -103,8 +103,28 @@ NOTE: The token is generated from the random number, so it will change every tim
 
 # Docker
 
-To be done...
+You can run this service as a docker container using the provided **Dockerfile** and **docker-compose.yml** files. Before running the container, if you want to use a volume for the uploads make sure the volume folder is owned by a user with id 1028 and gid 1000 - the non-root user that is running the upload service. 
+When running in a docker container the application is started with a pre-defined token. To use your own token set it as an environment variable.
+
+Run from the command line:
 
 ```
-$ docker run -p 25478:25478 -v $HOME/tmp:/tmp/uploads fccn/educast-http-uploader
+$ mkdir $HOME/upload&& chown -R 1028:100 $HOME/upload
+$ docker run -p 25478:25478 -v $HOME/upload:/home/educast_upload/uploads -e "APP_TOKEN=<my-token>" stvfccn/http-uploader
+```
+
+Or use a compose file:
+```
+version: '3.4'
+services:
+
+  httpuploader:
+    image: stvfccn/http-uploader
+    volumes:
+      - ./uploads:/home/educast_upload/uploads
+    restart: always
+    environment:
+      - APP_TOKEN=<my-token>
+    ports:
+      - "25478:25478"
 ```

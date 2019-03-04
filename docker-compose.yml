@@ -1,0 +1,14 @@
+version: '3.4'
+services:
+
+  httpuploader:
+    build: .
+    container_name: educast_http_uploader_v2
+    #command: app -token xxx /tmp/uploads
+    volumes:
+      - ./uploads:/home/educast_upload/uploads
+    restart: always
+    env_file:
+      - upload_srv.env
+    ports:
+      - "25478:25478"

@@ -32,6 +32,30 @@ func NewServer(documentRoot string, maxUploadSize int64, token string) Server {
 	}
 }
 
+func (s Server) handleHead(w http.ResponseWriter, r *http.Request) {
+	re := regexp.MustCompile(`^/files/(.+)$`)
+	matches := re.FindStringSubmatch(r.URL.Path)
+	if matches == nil {
+		w.WriteHeader(http.StatusNotFound)
+		writeError(w, fmt.Errorf("\"%s\" is not found", r.URL.Path))
+		return
+	}
+	targetPath := path.Join(s.DocumentRoot, matches[1])
+	fileInfo, err := os.Stat(targetPath)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		writeError(w, fmt.Errorf("\"%s\" is not found", r.URL.Path))
+		return
+	}
+	size := fileInfo.Size()
+	logger.WithFields(logrus.Fields{
+		"path": targetPath,
+		"size": size,
+	}).Info("HEAD request for file")
+	w.Header().Set("Upload-Size", fmt.Sprintf("%d",size))
+	w.WriteHeader(http.StatusOK)
+}
+
 func (s Server) handlePost(w http.ResponseWriter, r *http.Request) {
 	srcFile, info, err := r.FormFile("file")
 	if err != nil {
@@ -184,6 +208,8 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
+	case http.MethodHead:
+		s.handleHead(w, r)
 	case http.MethodPost:
 		s.handlePost(w, r)
 	case http.MethodPut:

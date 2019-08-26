@@ -32,6 +32,17 @@ func NewServer(documentRoot string, maxUploadSize int64, token string) Server {
 	}
 }
 
+func (s Server) handleGet(w http.ResponseWriter, r *http.Request) {
+	re := regexp.MustCompile(`^/files/(.+)$`)
+	if !re.MatchString(r.URL.Path) {
+		w.WriteHeader(http.StatusNotFound)
+		writeError(w, fmt.Errorf("\"%s\" is not found", r.URL.Path))
+		return
+	}
+	http.StripPrefix("/files/", http.FileServer(http.Dir(s.DocumentRoot))).ServeHTTP(w, r)
+}
+
+
 func (s Server) handleHead(w http.ResponseWriter, r *http.Request) {
 	re := regexp.MustCompile(`^/files/(.+)$`)
 	matches := re.FindStringSubmatch(r.URL.Path)
@@ -210,12 +221,14 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodHead:
 		s.handleHead(w, r)
+	case http.MethodGet:
+		s.handleGet(w, r)
 	case http.MethodPost:
 		s.handlePost(w, r)
 	case http.MethodPut:
 		s.handlePut(w, r)
 	default:
-		w.Header().Add("Allow", "HEAD,POST,PUT")
+		w.Header().Add("Allow", "GET,HEAD,POST,PUT")
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		writeError(w, fmt.Errorf("method \"%s\" is not allowed", r.Method))
 	}

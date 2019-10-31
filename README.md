@@ -8,6 +8,10 @@ Forked from [mayth/go-simple-upload-server](https://github.com/mayth/go-simple-u
 - ENV var **APP_TOKEN** to set the application token 
 - using Alpline:latest for runtime image
 
+# Compile
+ install go and do
+ $ go build
+
 # Usage
 
 ## Start Server

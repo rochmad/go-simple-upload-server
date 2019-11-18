@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+SERVER=127.0.0.1
+PORT=25478
+BINARY_DIR=/opt/apps/go-simple-upload-server
+
+NC=`nc -w5 -z $SERVER $PORT < /dev/null`
+PS=$?
+
+if [  "$PS" == 0 ]; then
+        echo -e "$SERVER with $PORT is close \nWaiting close...."
+        sleep 3 && exit
+else
+        echo -e "$SERVER with $PORT is Now open \nContinue.. \n"
+        exec 2>&1
+        ulimit -c unlimited
+        ulimit -n 65535
+
+        cd $BINARY_DIR && \
+        exec setuidgid nobody ./go-simple-upload-server -upload_limit 5242880000 -token bWluZHRhbGsuY29t /opt/ci-release-files/
+fi
